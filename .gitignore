@@ -1,0 +1,37 @@
+# Unity generated folders (anywhere in repo)
+[Ll]ibrary/
+[Tt]emp/
+[Oo]bj/
+[Bb]uild/
+[Bb]uilds/
+[Bb]uilds-*/
+[Ll]ogs/
+[Mm]emoryCaptures/
+
+# Unity user-specific settings
+[Uu]ser[Ss]ettings/
+
+# Visual Studio / Rider files
+.vs/
+*.csproj
+*.sln
+*.slnx
+*.user
+*.userprefs
+*.pidb
+*.booproj
+*.svd
+*.pdb
+*.mdb
+*.opendb
+*.VC.db
+
+# Unity auto-generated meta for temporary files
+sysinfo.txt
+
+# OS/editor junk
+.DS_Store
+Thumbs.db
+
+# Local helper files
+git_state_check.txt
