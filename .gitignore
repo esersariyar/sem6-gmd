@@ -32,6 +32,3 @@ sysinfo.txt
 # OS/editor junk
 .DS_Store
 Thumbs.db
-
-# Local helper files
-git_state_check.txt

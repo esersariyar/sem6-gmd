@@ -3,7 +3,7 @@ using UnityEngine;
 public class PlayerMovement : MonoBehaviour
 {
     public float speed = 5f;
-    public float rotationSpeed = 10f;
+    public float rotationSpeed = 0.5f;
     public float jumpForce = 6f;
     public float airControl = 0.3f;
 
@@ -24,29 +24,35 @@ public class PlayerMovement : MonoBehaviour
     void Update()
     {
         isGrounded = Physics.CheckSphere(groundCheck.position, groundDistance, groundLayer);
-        
+
         if (!canMove)
         {
             moveInput = Vector3.zero;
             return;
         }
 
-        float h = Input.GetAxis("Horizontal");
-        float v = Input.GetAxis("Vertical");
+        float h = Input.GetAxisRaw("Horizontal");
+        float v = Input.GetAxisRaw("Vertical");
+
+        if (Mathf.Abs(h) < 0.1f) h = 0f;
+        if (Mathf.Abs(v) < 0.1f) v = 0f;
 
         Transform cam = Camera.main.transform;
+
         Vector3 camForward = cam.forward;
         Vector3 camRight = cam.right;
+
         camForward.y = 0f;
         camRight.y = 0f;
+
         camForward.Normalize();
         camRight.Normalize();
 
         moveInput = camForward * v + camRight * h;
 
-        if (moveInput.magnitude > 0.1f)
+        if (v > 0f)
         {
-            Quaternion targetRotation = Quaternion.LookRotation(moveInput);
+            Quaternion targetRotation = Quaternion.LookRotation(camForward);
             transform.rotation = Quaternion.Slerp(
                 transform.rotation,
                 targetRotation,

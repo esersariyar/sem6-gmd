@@ -13,6 +13,6 @@ public class CameraFollow : MonoBehaviour
 
         transform.position = smoothedPosition;
 
-        transform.LookAt(target);
+        // Don't use LookAt - let MouseLook (CameraTarget) handle rotation
     }
 }
