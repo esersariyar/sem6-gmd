@@ -8,7 +8,7 @@ public class DrunkEffect : MonoBehaviour
     public float swayAmount = 2f;
     public float swaySpeed = 1.5f;
 
-    private bool isDrunk = false;
+    public bool isDrunk = false;
     private float baseX;
     private float baseY;
 

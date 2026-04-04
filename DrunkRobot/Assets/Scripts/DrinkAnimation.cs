@@ -5,7 +5,6 @@ public class DrinkAnimation : MonoBehaviour
 {
     public Transform rightArm;
     public Transform bottle;
-    public Transform handPoint;
     public DrinkInteraction interaction;
     public MouseLook mouseLook;
 
@@ -14,10 +13,40 @@ public class DrinkAnimation : MonoBehaviour
     public float holdTime = 1.5f;
 
     private bool isDrinking = false;
+    private Transform handPoint;
+
+    void EnsureReferences()
+    {
+        if (rightArm == null || bottle == null)
+        {
+            return;
+        }
+
+        if (handPoint == null)
+        {
+            Transform existing = rightArm.Find("_AutoHandPoint");
+            if (existing != null)
+            {
+                handPoint = existing;
+            }
+            else
+            {
+                GameObject handPointObject = new GameObject("_AutoHandPoint");
+                handPoint = handPointObject.transform;
+                handPoint.SetParent(rightArm, false);
+                handPoint.localPosition = new Vector3(0f, 0.15f, 0.25f);
+                handPoint.localRotation = Quaternion.identity;
+            }
+        }
+    }
 
     public void PlayDrink()
     {
         if (isDrinking) return;
+
+        EnsureReferences();
+        if (rightArm == null || bottle == null || handPoint == null) return;
+
         StartCoroutine(DrinkAnim());
     }
 
