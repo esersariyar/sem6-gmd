@@ -318,6 +318,9 @@ MonoBehaviour:
   isDrunk: 0
   drunkAmount: 2
   drunkSpeed: 1.5
+  boostMultiplier: 3
+  boostDuration: 2
+  blurOverlay: {fileID: 0}
   canLook: 0
 --- !u!1 &330585543
 GameObject:
@@ -1119,6 +1122,7 @@ MonoBehaviour:
   groundLayer:
     serializedVersion: 2
     m_Bits: 256
+  maxJumps: 2
   canMove: 0
 --- !u!54 &784962597
 Rigidbody:
@@ -1469,24 +1473,11 @@ MonoBehaviour:
   m_GameObject: {fileID: 887019072}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 950831eecd44e3d4699d1a6bda577b34, type: 3}
+  m_Script: {fileID: 11500000, guid: 5f07fd0e991a8bf4d90f5c575df24ae0, type: 3}
   m_Name: 
   m_EditorClassIdentifier: '::'
-  pressUI: {fileID: 807309166}
-  notDrunkUI: {fileID: 1968458937}
-  mouseLook: {fileID: 325041612}
-  buttonMesh: {fileID: 887019076}
-  pressDepth: 0.02
-  pressSpeed: 12
-  rightArm: {fileID: 377060343}
-  armForwardAmount: 0.15
-  armSpeed: 10
-  sceneToLoad: Level1
---- !u!4 &887019076 stripped
-Transform:
-  m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: 78615a14ee90a6c4a8d8d3c8d79d8e79, type: 3}
-  m_PrefabInstance: {fileID: 887019071}
-  m_PrefabAsset: {fileID: 0}
+  pressEUI: {fileID: 807309166}
+  youHaveToBeDrunkUI: {fileID: 1968458937}
 --- !u!65 &887019077
 BoxCollider:
   m_ObjectHideFlags: 0
