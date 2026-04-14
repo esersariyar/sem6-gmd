@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 public class Spawner : MonoBehaviour
 {
@@ -31,7 +32,18 @@ public class Spawner : MonoBehaviour
 
     void Update()
     {
-        if (stopSpawning) return;
+        if (stopSpawning)
+        {
+            if (endZone != null)
+            {
+                float distZ = Mathf.Abs(player.position.z - endZone.position.z);
+                if (distZ <= 2f)
+                {
+                    SceneManager.LoadScene("Level2");
+                }
+            }
+            return;
+        }
 
         if (endZone != null)
         {
