@@ -3,10 +3,21 @@ using System.Collections;
 
 public class DrinkAnimation : MonoBehaviour
 {
+    public enum DrinkEffectMode
+    {
+        ActivateDrunk,
+        SuppressDrunk
+    }
+
     public Transform rightArm;
     public Transform bottle;
     public DrinkInteraction interaction;
     public MouseLook mouseLook;
+    public PlayerMovement playerMovement;
+    public DrinkEffectMode effectMode = DrinkEffectMode.ActivateDrunk;
+    public float soberDuration = 5f;
+    public float speedBoostMultiplier = 1.5f;
+    public bool destroyAfterDrink = true;
 
     public float raiseSpeed = 2f;
     public float lowerSpeed = 1.5f;
@@ -77,12 +88,30 @@ public class DrinkAnimation : MonoBehaviour
             interaction.DisableInteraction();
         }
 
-        if (mouseLook != null)
+        if (mouseLook != null && effectMode == DrinkEffectMode.ActivateDrunk)
         {
             mouseLook.ActivateDrunk();
         }
+        else if (mouseLook != null && effectMode == DrinkEffectMode.SuppressDrunk)
+        {
+            mouseLook.SuppressDrunk(soberDuration);
 
-        Destroy(bottle.gameObject);
+            if (playerMovement != null)
+            {
+                playerMovement.BoostSpeed(speedBoostMultiplier, soberDuration);
+            }
+
+            EnemyChaser.BoostAll(speedBoostMultiplier, soberDuration);
+        }
+
+        if (destroyAfterDrink)
+        {
+            Destroy(bottle.gameObject);
+        }
+        else
+        {
+            bottle.gameObject.SetActive(false);
+        }
 
         t = 0f;
 

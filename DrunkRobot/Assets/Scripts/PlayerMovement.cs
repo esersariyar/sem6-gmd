@@ -1,4 +1,5 @@
 using UnityEngine;
+using System.Collections;
 
 public class PlayerMovement : MonoBehaviour
 {
@@ -6,33 +7,130 @@ public class PlayerMovement : MonoBehaviour
     public float rotationSpeed = 0.5f;
     public float jumpForce = 8f;
     public float airControl = 0.3f;
+    public KeyCode keyboardJumpKey = KeyCode.Space;
+    public KeyCode leftGreenButton = KeyCode.Joystick1Button1;
+    public KeyCode rightGreenButton = KeyCode.Joystick2Button1;
+    public string moveHorizontalAxis = "Arcade Move Horizontal";
+    public string moveVerticalAxis = "Arcade Move Vertical";
+    public bool useKeyboardMovement = true;
 
     public Transform groundCheck;
     public float groundDistance = 0.2f;
     public LayerMask groundLayer;
+    public float coyoteTime = 0.2f;
 
     public int maxJumps = 2;
+
+    [Header("Drunk Stumble")]
+    public MouseLook mouseLook;
+    public float stumbleMinInterval = 1.2f;
+    public float stumbleMaxInterval = 2.8f;
+    public float stumbleMinDuration = 0.4f;
+    public float stumbleMaxDuration = 0.9f;
+    [Range(0f, 1f)] public float chanceOfReverse = 0.4f;
+    public float baseDriftAmplitude = 25f;
+    public float baseDriftSpeed = 1.8f;
+
+    private float nextStumbleTime;
+    private float stumbleEndTime;
+    private float stumbleAngle;
+    private float driftSeed;
 
     private Rigidbody rb;
     private bool isGrounded;
     private Vector3 moveInput;
     public bool canMove = false;
     private int jumpsRemaining;
+    private Coroutine speedBoostCoroutine;
+    private float baseSpeed;
+    private float groundTimer;
+    private Vector3 externalVelocity;
 
     void Start()
     {
         rb = GetComponent<Rigidbody>();
         jumpsRemaining = maxJumps;
+        baseSpeed = speed;
+
+        if (mouseLook == null)
+        {
+            mouseLook = GetComponentInChildren<MouseLook>();
+        }
+
+        ScheduleNextStumble();
+        driftSeed = Random.Range(0f, 100f);
+    }
+
+    void ScheduleNextStumble()
+    {
+        nextStumbleTime = Time.time + Random.Range(stumbleMinInterval, stumbleMaxInterval);
+    }
+
+    Vector2 ApplyDrunkStumble(float h, float v)
+    {
+        if (mouseLook == null || !mouseLook.isDrunk)
+        {
+            return new Vector2(h, v);
+        }
+
+        if (Time.time >= stumbleEndTime && Time.time >= nextStumbleTime)
+        {
+            stumbleEndTime = Time.time + Random.Range(stumbleMinDuration, stumbleMaxDuration);
+            bool reverse = Random.value < chanceOfReverse;
+            if (reverse)
+            {
+                stumbleAngle = 180f + Random.Range(-30f, 30f);
+            }
+            else
+            {
+                stumbleAngle = (Random.value < 0.5f ? 90f : -90f) + Random.Range(-25f, 25f);
+            }
+            ScheduleNextStumble();
+        }
+
+        if (Mathf.Abs(h) < 0.05f && Mathf.Abs(v) < 0.05f)
+        {
+            return new Vector2(h, v);
+        }
+
+        float drift = (Mathf.PerlinNoise(driftSeed, Time.time * baseDriftSpeed) - 0.5f) * 2f * baseDriftAmplitude;
+        float angle = drift;
+
+        if (Time.time < stumbleEndTime)
+        {
+            angle += stumbleAngle;
+        }
+
+        float rad = angle * Mathf.Deg2Rad;
+        float cos = Mathf.Cos(rad);
+        float sin = Mathf.Sin(rad);
+        float newH = h * cos - v * sin;
+        float newV = h * sin + v * cos;
+        return new Vector2(newH, newV);
+    }
+
+    void OnEnable()
+    {
+        PlayerRespawn.Respawned += ClearSpeedBoost;
+    }
+
+    void OnDisable()
+    {
+        PlayerRespawn.Respawned -= ClearSpeedBoost;
     }
 
     void Update()
     {
-        bool wasGrounded = isGrounded;
-        isGrounded = Physics.CheckSphere(groundCheck.position, groundDistance, groundLayer);
+        UpdateGrounded();
 
-        if (isGrounded && !wasGrounded)
+        if (isGrounded)
         {
             jumpsRemaining = maxJumps;
+            groundTimer = coyoteTime;
+        }
+        else
+        {
+            groundTimer -= Time.deltaTime;
         }
 
         if (!canMove)
@@ -41,11 +139,15 @@ public class PlayerMovement : MonoBehaviour
             return;
         }
 
-        float h = Input.GetAxisRaw("Horizontal");
-        float v = Input.GetAxisRaw("Vertical");
+        float h = GetMoveHorizontal();
+        float v = GetMoveVertical();
 
         if (Mathf.Abs(h) < 0.1f) h = 0f;
         if (Mathf.Abs(v) < 0.1f) v = 0f;
+
+        Vector2 stumbled = ApplyDrunkStumble(h, v);
+        h = stumbled.x;
+        v = stumbled.y;
 
         Transform cam = Camera.main.transform;
 
@@ -70,22 +172,31 @@ public class PlayerMovement : MonoBehaviour
             );
         }
 
-        if (Input.GetKeyDown(KeyCode.Space) && jumpsRemaining > 0)
+        if (IsJumpPressed() && (jumpsRemaining > 0 || groundTimer > 0f))
         {
             rb.linearVelocity = new Vector3(rb.linearVelocity.x, 0f, rb.linearVelocity.z);
             rb.AddForce(Vector3.up * jumpForce, ForceMode.Impulse);
-            jumpsRemaining--;
+            jumpsRemaining = Mathf.Max(0, jumpsRemaining - 1);
+            groundTimer = 0f;
         }
+    }
+
+    void UpdateGrounded()
+    {
+        Vector3 checkPosition = groundCheck != null ? groundCheck.position : transform.position + Vector3.down * 0.9f;
+        isGrounded = Physics.CheckSphere(checkPosition, groundDistance, groundLayer, QueryTriggerInteraction.Ignore);
     }
 
     void FixedUpdate()
     {
-        float currentSpeed = isGrounded ? speed : speed * airControl;
+        bool isSpeedBoosted = speedBoostCoroutine != null;
+        float currentSpeed = isGrounded || isSpeedBoosted ? speed : speed * airControl;
 
         Vector3 move = moveInput.normalized * currentSpeed;
 
-        Vector3 velocity = new Vector3(move.x, rb.linearVelocity.y, move.z);
+        Vector3 velocity = new Vector3(move.x + externalVelocity.x, rb.linearVelocity.y, move.z + externalVelocity.z);
         rb.linearVelocity = velocity;
+        externalVelocity = Vector3.MoveTowards(externalVelocity, Vector3.zero, 45f * Time.fixedDeltaTime);
     }
 
     void OnCollisionEnter(Collision collision)
@@ -95,6 +206,7 @@ public class PlayerMovement : MonoBehaviour
             if (contact.normal.y > 0.3f)
             {
                 jumpsRemaining = maxJumps;
+                groundTimer = coyoteTime;
                 return;
             }
         }
@@ -112,6 +224,114 @@ public class PlayerMovement : MonoBehaviour
                     jumpsRemaining = 1;
                 return;
             }
+        }
+    }
+
+    public void BoostSpeed(float multiplier, float duration)
+    {
+        if (speedBoostCoroutine != null)
+        {
+            StopCoroutine(speedBoostCoroutine);
+        }
+
+        speedBoostCoroutine = StartCoroutine(BoostSpeedRoutine(multiplier, duration));
+    }
+
+    IEnumerator BoostSpeedRoutine(float multiplier, float duration)
+    {
+        speed = baseSpeed * multiplier;
+
+        yield return new WaitForSeconds(duration);
+
+        speed = baseSpeed;
+        speedBoostCoroutine = null;
+    }
+
+    public void ClearSpeedBoost()
+    {
+        if (speedBoostCoroutine != null)
+        {
+            StopCoroutine(speedBoostCoroutine);
+        }
+
+        speedBoostCoroutine = null;
+        speed = baseSpeed;
+    }
+
+    public void AddExternalVelocity(Vector3 velocity)
+    {
+        externalVelocity += velocity;
+    }
+
+    public void SetExternalVelocity(Vector3 velocity)
+    {
+        if (velocity.sqrMagnitude > externalVelocity.sqrMagnitude)
+        {
+            externalVelocity = velocity;
+        }
+    }
+
+    bool IsJumpPressed()
+    {
+        return Input.GetKeyDown(keyboardJumpKey)
+            || Input.GetKeyDown(leftGreenButton)
+            || Input.GetKeyDown(rightGreenButton);
+    }
+
+    float GetMoveHorizontal()
+    {
+        float value = GetAxisRawSafe(moveHorizontalAxis);
+
+        if (useKeyboardMovement)
+        {
+            if (Input.GetKey(KeyCode.A) || Input.GetKey(KeyCode.LeftArrow))
+            {
+                value -= 1f;
+            }
+
+            if (Input.GetKey(KeyCode.D) || Input.GetKey(KeyCode.RightArrow))
+            {
+                value += 1f;
+            }
+        }
+
+        return Mathf.Clamp(value, -1f, 1f);
+    }
+
+    float GetMoveVertical()
+    {
+        float value = GetAxisRawSafe(moveVerticalAxis);
+
+        if (useKeyboardMovement)
+        {
+            if (Input.GetKey(KeyCode.S) || Input.GetKey(KeyCode.DownArrow))
+            {
+                value -= 1f;
+            }
+
+            if (Input.GetKey(KeyCode.W) || Input.GetKey(KeyCode.UpArrow))
+            {
+                value += 1f;
+            }
+        }
+
+        return Mathf.Clamp(value, -1f, 1f);
+    }
+
+    float GetAxisRawSafe(string axisName)
+    {
+        if (string.IsNullOrEmpty(axisName))
+        {
+            return 0f;
+        }
+
+        try
+        {
+            return Input.GetAxisRaw(axisName);
+        }
+        catch
+        {
+            return 0f;
         }
     }
 }

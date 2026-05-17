@@ -4,6 +4,9 @@ public class DrinkInteraction : MonoBehaviour
 {
     public GameObject promptUI;
     public DrinkAnimation drinkAnimation;
+    public KeyCode keyboardInteractKey = KeyCode.E;
+    public KeyCode leftBlueButton = KeyCode.Joystick1Button0;
+    public KeyCode rightBlueButton = KeyCode.Joystick2Button0;
 
     private bool playerInRange = false;
     private bool hasDrunk = false;
@@ -20,7 +23,7 @@ public class DrinkInteraction : MonoBehaviour
     {
         if (hasDrunk) return;
 
-        if (playerInRange && (Input.GetKeyDown(KeyCode.E) || Input.GetButtonDown("Submit")))
+        if (playerInRange && IsInteractPressed())
         {
             if (drinkAnimation != null)
             {
@@ -74,5 +77,24 @@ public class DrinkInteraction : MonoBehaviour
         {
             promptUI.SetActive(false);
         }
+    }
+
+    public void ResetInteraction()
+    {
+        playerInRange = false;
+        hasDrunk = false;
+
+        if (promptUI != null)
+        {
+            promptUI.SetActive(false);
+        }
+    }
+
+    bool IsInteractPressed()
+    {
+        return Input.GetKeyDown(keyboardInteractKey)
+            || Input.GetKeyDown(leftBlueButton)
+            || Input.GetKeyDown(rightBlueButton)
+            || Input.GetButtonDown("Submit");
     }
 }

@@ -1,11 +1,17 @@
 using UnityEngine;
 using UnityEngine.UI;
+using System.Collections;
 
 public class MouseLook : MonoBehaviour
 {
     public Transform playerBody;
     public float sensitivity = 120f;
     public float smoothTime = 0.05f;
+    public bool useMouseLook = true;
+    public bool useArcadeLookAxis = true;
+    public string arcadeLookHorizontalAxis = "Arcade Look Horizontal";
+    public string alternateArcadeLookHorizontalAxis = "Arcade Look Horizontal 9";
+    public float arcadeTurnSensitivity = 140f;
 
     public bool isDrunk = false;
     public float drunkAmount = 2f;
@@ -27,6 +33,15 @@ public class MouseLook : MonoBehaviour
 
     private bool isBoosted = false;
     private float boostTimer = 0f;
+    private Coroutine soberCoroutine;
+    private float soberTimer = 0f;
+    private float soberTimerMax = 0f;
+    private bool restoreDrunkAfterSober = false;
+
+    public bool IsSobering => soberCoroutine != null;
+    public float SoberRemaining => soberTimer;
+    public float SoberDuration => soberTimerMax;
+    public float SoberProgress => soberTimerMax > 0f ? soberTimer / soberTimerMax : 0f;
 
     void Start()
     {
@@ -38,6 +53,24 @@ public class MouseLook : MonoBehaviour
 
         if (blurOverlay != null)
             blurOverlay.color = new Color(1f, 0f, 0f, 0f);
+
+        arcadeLookHorizontalAxis = arcadeLookHorizontalAxis.Trim();
+        alternateArcadeLookHorizontalAxis = alternateArcadeLookHorizontalAxis.Trim();
+
+        if (arcadeLookHorizontalAxis == "Debug Horizontal")
+        {
+            arcadeLookHorizontalAxis = "Arcade Look Horizontal";
+        }
+    }
+
+    void OnEnable()
+    {
+        PlayerRespawn.Respawned += ClearCoffeeEffect;
+    }
+
+    void OnDisable()
+    {
+        PlayerRespawn.Respawned -= ClearCoffeeEffect;
     }
 
     void Update()
@@ -59,8 +92,28 @@ public class MouseLook : MonoBehaviour
 
         if (!canLook) return;
 
-        float targetMouseX = Input.GetAxis("Mouse X") * sensitivity * Time.deltaTime;
-        float targetMouseY = Input.GetAxis("Mouse Y") * sensitivity * Time.deltaTime;
+        float targetMouseX = 0f;
+        float targetMouseY = 0f;
+
+        if (useMouseLook)
+        {
+            targetMouseX = Input.GetAxis("Mouse X") * sensitivity * Time.deltaTime;
+            targetMouseY = Input.GetAxis("Mouse Y") * sensitivity * Time.deltaTime;
+        }
+
+        if (useArcadeLookAxis)
+        {
+            float horizontalLook = GetAxisRawSafe(arcadeLookHorizontalAxis);
+            if (Mathf.Abs(horizontalLook) <= 0.1f)
+            {
+                horizontalLook = GetAxisRawSafe(alternateArcadeLookHorizontalAxis);
+            }
+
+            if (Mathf.Abs(horizontalLook) > 0.1f)
+            {
+                targetMouseX += horizontalLook * arcadeTurnSensitivity * Time.deltaTime;
+            }
+        }
 
         currentMouseX = Mathf.SmoothDamp(currentMouseX, targetMouseX, ref mouseXVelocity, smoothTime);
         currentMouseY = Mathf.SmoothDamp(currentMouseY, targetMouseY, ref mouseYVelocity, smoothTime);
@@ -94,5 +147,75 @@ public class MouseLook : MonoBehaviour
     {
         isBoosted = true;
         boostTimer = boostDuration;
+    }
+
+    public void SuppressDrunk(float duration)
+    {
+        restoreDrunkAfterSober = restoreDrunkAfterSober || isDrunk;
+
+        if (soberCoroutine != null)
+        {
+            StopCoroutine(soberCoroutine);
+        }
+
+        soberTimerMax = duration;
+        soberTimer = duration;
+        soberCoroutine = StartCoroutine(SuppressDrunkRoutine(duration));
+    }
+
+    public void ClearCoffeeEffect()
+    {
+        if (soberCoroutine != null)
+        {
+            StopCoroutine(soberCoroutine);
+        }
+
+        soberCoroutine = null;
+        soberTimer = 0f;
+        soberTimerMax = 0f;
+        isDrunk = restoreDrunkAfterSober || isDrunk;
+        restoreDrunkAfterSober = false;
+    }
+
+    IEnumerator SuppressDrunkRoutine(float duration)
+    {
+        isDrunk = false;
+        isBoosted = false;
+        boostTimer = 0f;
+
+        if (blurOverlay != null)
+        {
+            Color c = blurOverlay.color;
+            c.a = 0f;
+            blurOverlay.color = c;
+        }
+
+        while (soberTimer > 0f)
+        {
+            soberTimer -= Time.deltaTime;
+            yield return null;
+        }
+
+        soberTimer = 0f;
+        isDrunk = restoreDrunkAfterSober;
+        restoreDrunkAfterSober = false;
+        soberCoroutine = null;
+    }
+
+    float GetAxisRawSafe(string axisName)
+    {
+        if (string.IsNullOrEmpty(axisName))
+        {
+            return 0f;
+        }
+
+        try
+        {
+            return Input.GetAxisRaw(axisName);
+        }
+        catch
+        {
+            return 0f;
+        }
     }
 }

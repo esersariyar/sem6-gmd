@@ -5,6 +5,9 @@ public class RedButtonInteraction : MonoBehaviour
 {
     public GameObject pressEUI;
     public GameObject youHaveToBeDrunkUI;
+    public KeyCode keyboardInteractKey = KeyCode.E;
+    public KeyCode leftBlueButton = KeyCode.Joystick1Button0;
+    public KeyCode rightBlueButton = KeyCode.Joystick2Button0;
 
     private MouseLook mouseLook;
     private bool playerInRange = false;
@@ -24,7 +27,7 @@ public class RedButtonInteraction : MonoBehaviour
     {
         if (!playerInRange) return;
 
-        if (Input.GetKeyDown(KeyCode.E) || Input.GetButtonDown("Submit"))
+        if (IsInteractPressed())
         {
             if (mouseLook != null && mouseLook.isDrunk)
             {
@@ -39,6 +42,14 @@ public class RedButtonInteraction : MonoBehaviour
                     youHaveToBeDrunkUI.SetActive(true);
             }
         }
+    }
+
+    bool IsInteractPressed()
+    {
+        return Input.GetKeyDown(keyboardInteractKey)
+            || Input.GetKeyDown(leftBlueButton)
+            || Input.GetKeyDown(rightBlueButton)
+            || Input.GetButtonDown("Submit");
     }
 
     void OnTriggerEnter(Collider other)
