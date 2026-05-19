@@ -23,6 +23,7 @@ All games are playable in the browser via GitHub Pages:
 |-------|--------|
 | Fans for Metro (Free) | [RenderHub - Abandoned World](https://www.renderhub.com/abandoned-world/fans-for-metro-free) |
 | SciFi Simple Gun Turret Set | [Unity Asset Store](https://assetstore.unity.com/packages/3d/characters/scifi-simple-gun-turret-set-62750) |
+| Blocky Characters (Robot) | [Kenney.nl](https://kenney.nl/assets/blocky-characters) |
 
 ---
 
