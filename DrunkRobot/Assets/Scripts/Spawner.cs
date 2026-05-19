@@ -15,16 +15,20 @@ public class Spawner : MonoBehaviour
     public float spawnTimeEnd = 1.2f;
     public float startDelay = 3f;
     public float obstacleLifetime = 60f;
+    public int sideObstacleGap = 0;
+    public int sideObstaclesBeforeSwitch = 2;
 
     private bool stopSpawning = false;
     private float currentSpawnTime;
     private float totalDistance;
-    private int lastSide = -1;
     private int gapCount = 0;
+    private int currentSide = -1;
+    private int sideRunCount = 0;
 
     void Start()
     {
         currentSpawnTime = spawnTimeStart;
+        currentSide = Random.Range(0, 2);
         if (endZone != null)
             totalDistance = endZone.position.z - player.position.z;
         InvokeRepeating(nameof(Spawn), startDelay, currentSpawnTime);
@@ -94,64 +98,68 @@ public class Spawner : MonoBehaviour
         }
 
         float bottomChance;
-        int requiredGap;
         
         if (progress < 0.3f)
         {
-            bottomChance = 0.15f;
-            requiredGap = 1;
+            bottomChance = 0.1f;
         }
         else if (progress < 0.5f)
         {
-            bottomChance = 0.25f;
-            requiredGap = 1;
+            bottomChance = 0.18f;
         }
         else if (progress < 0.7f)
         {
-            bottomChance = 0.4f;
-            requiredGap = 2;
+            bottomChance = 0.25f;
         }
         else
         {
-            bottomChance = 0.5f;
-            requiredGap = 2;
+            bottomChance = 0.32f;
         }
 
         GameObject selectedPrefab;
+        int sideGap = Mathf.Max(0, sideObstacleGap);
+        int maxSideRun = Mathf.Max(1, sideObstaclesBeforeSwitch);
 
         if (gapCount > 0)
         {
             selectedPrefab = bottomPrefab;
             gapCount--;
+
+            if (gapCount == 0)
+            {
+                currentSide = 1 - currentSide;
+                sideRunCount = 0;
+            }
         }
         else
         {
             float rand = Random.Range(0f, 1f);
 
-            if (rand < bottomChance)
+            if (sideRunCount >= maxSideRun)
             {
                 selectedPrefab = bottomPrefab;
+                currentSide = 1 - currentSide;
+                sideRunCount = 0;
+            }
+            else if (sideRunCount > 0 && rand < bottomChance)
+            {
+                selectedPrefab = bottomPrefab;
+                currentSide = 1 - currentSide;
+                sideRunCount = 0;
             }
             else
             {
-                if (lastSide == 0)
-                {
-                    selectedPrefab = rightPrefab;
-                    lastSide = 1;
-                    gapCount = requiredGap;
-                }
-                else if (lastSide == 1)
+                if (currentSide == 0)
                 {
                     selectedPrefab = leftPrefab;
-                    lastSide = 0;
-                    gapCount = requiredGap;
                 }
                 else
                 {
-                    int side = Random.Range(0, 2);
-                    selectedPrefab = (side == 0) ? leftPrefab : rightPrefab;
-                    lastSide = side;
+                    selectedPrefab = rightPrefab;
                 }
+
+                sideRunCount++;
+                gapCount = sideGap;
             }
         }
 

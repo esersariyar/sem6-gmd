@@ -1,5 +1,6 @@
 using UnityEngine;
 using System.Collections;
+using UnityEngine.SceneManagement;
 
 public class PlayerMovement : MonoBehaviour
 {
@@ -30,6 +31,7 @@ public class PlayerMovement : MonoBehaviour
     [Range(0f, 1f)] public float chanceOfReverse = 0.4f;
     public float baseDriftAmplitude = 25f;
     public float baseDriftSpeed = 1.8f;
+    public float stumbleAngleMultiplier = 1f;
 
     private float nextStumbleTime;
     private float stumbleEndTime;
@@ -57,8 +59,25 @@ public class PlayerMovement : MonoBehaviour
             mouseLook = GetComponentInChildren<MouseLook>();
         }
 
+        ApplySceneDrunkTuning();
         ScheduleNextStumble();
         driftSeed = Random.Range(0f, 100f);
+    }
+
+    void ApplySceneDrunkTuning()
+    {
+        if (SceneManager.GetActiveScene().name != "Level1")
+        {
+            return;
+        }
+
+        chanceOfReverse = Mathf.Min(chanceOfReverse, 0.08f);
+        baseDriftAmplitude = Mathf.Min(baseDriftAmplitude, 8f);
+        stumbleAngleMultiplier = Mathf.Min(stumbleAngleMultiplier, 0.35f);
+        stumbleMinInterval = Mathf.Max(stumbleMinInterval, 2.2f);
+        stumbleMaxInterval = Mathf.Max(stumbleMaxInterval, 4f);
+        stumbleMinDuration = Mathf.Min(stumbleMinDuration, 0.25f);
+        stumbleMaxDuration = Mathf.Min(stumbleMaxDuration, 0.45f);
     }
 
     void ScheduleNextStumble()
@@ -79,11 +98,11 @@ public class PlayerMovement : MonoBehaviour
             bool reverse = Random.value < chanceOfReverse;
             if (reverse)
             {
-                stumbleAngle = 180f + Random.Range(-30f, 30f);
+                stumbleAngle = (180f + Random.Range(-30f, 30f)) * stumbleAngleMultiplier;
             }
             else
             {
-                stumbleAngle = (Random.value < 0.5f ? 90f : -90f) + Random.Range(-25f, 25f);
+                stumbleAngle = ((Random.value < 0.5f ? 90f : -90f) + Random.Range(-25f, 25f)) * stumbleAngleMultiplier;
             }
             ScheduleNextStumble();
         }
